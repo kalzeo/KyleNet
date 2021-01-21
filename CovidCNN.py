@@ -1,8 +1,8 @@
 import pandas as pd
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.layers import Conv2D, Dense, Flatten, MaxPooling2D, BatchNormalization
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing import image
+from tensorflow.keras.optimizers import Adam
 
 class CovidCNN():
     def __init__(self, metadata_location):
@@ -10,7 +10,7 @@ class CovidCNN():
 
         # Model properties
         self.batchSize = 128
-        self.epochs = 30
+        self.epochs = 20
         self.imageSize = (224, 224)
 
         # Image generator and iterators
@@ -43,22 +43,17 @@ class CovidCNN():
     def Create(self):
         model = Sequential()
         model.add(Conv2D(32, (3, 3), activation="relu", input_shape=self.imageSize + (3,)))
-        model.add(Conv2D(32, (3, 3), activation="relu"))
         model.add(BatchNormalization())
         model.add(MaxPooling2D())
-        model.add(Conv2D(64, (3, 3), activation="relu"))
         model.add(Conv2D(64, (3, 3), activation="relu"))
         model.add(BatchNormalization())
         model.add(MaxPooling2D())
         model.add(Conv2D(128, (3, 3), activation="relu"))
-        model.add(Conv2D(128, (3, 3), activation="relu"))
         model.add(BatchNormalization())
         model.add(MaxPooling2D())
         model.add(Conv2D(256, (3, 3), activation="relu"))
-        model.add(Conv2D(256, (3, 3), activation="relu"))
         model.add(BatchNormalization())
         model.add(MaxPooling2D())
-        model.add(Conv2D(512, (3, 3), activation="relu"))
         model.add(Conv2D(512, (3, 3), activation="relu"))
         model.add(BatchNormalization())
         model.add(MaxPooling2D())
@@ -66,22 +61,17 @@ class CovidCNN():
         model.add(Dense(64, activation="relu"))
         model.add(BatchNormalization())
         model.add(Dense(1, activation="sigmoid"))
-        model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
+        model.compile(optimizer=Adam(learning_rate=0.0005), loss="binary_crossentropy", metrics=["accuracy"])
 
         return model
 
     def Train(self, model_name):
-        checkpoint = ModelCheckpoint(f"{model_name}.h5", monitor="val_accuracy", save_best_only=True, verbose=1)
-        stop = EarlyStopping(monitor="val_loss", patience=2, verbose=1)
-
         return self.model.fit(self.training,
                               steps_per_epoch=self.trainingSteps,
                               epochs=self.epochs,
                               batch_size=self.batchSize,
                               validation_data=self.testing,
-                              validation_steps=self.testingSteps,
-                              callbacks=[checkpoint, stop])
+                              validation_steps=self.testingSteps)
 
     def Evaluate(self):
         self.model.evaluate(self.testing)
-
