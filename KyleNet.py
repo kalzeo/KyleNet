@@ -53,6 +53,7 @@ class KyleNet():
                                                   subset=subset)
 
     def __Balancer(self):
+        # Undersample the majority class
         g = self.df.groupby("finding")
         self.df = shuffle(g.apply(lambda x: x.sample(g.size().min())).reset_index(drop=True))
 
