@@ -4,16 +4,20 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve, roc_auc_score
+from sklearn.utils import shuffle
 from tensorflow.keras.layers import Conv2D, Dense, Flatten, MaxPooling2D, BatchNormalization
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.optimizers import Adam
 
 class KyleNet():
-    def __init__(self, metadata_location, experiment_title):
+    def __init__(self, metadata_location, experiment_title, balance_dataset):
         self.df = pd.read_csv(metadata_location)
-        self.experiment_title = experiment_title
 
+        if balance_dataset:
+            self.__Balancer()
+
+        self.experiment_title = experiment_title
         self.labels = ["COVID-19", "NON-COVID"]
 
         # Model properties
@@ -36,7 +40,7 @@ class KyleNet():
         return self.model.summary()
 
     def __ImageGenerator(self):
-        return image.ImageDataGenerator(validation_split=0.2)
+        return image.ImageDataGenerator(rescale=1./255, validation_split=0.2)
 
     def __FlowFromDF(self, subset):
         return self.generator.flow_from_dataframe(self.df,
@@ -48,9 +52,14 @@ class KyleNet():
                                                   shuffle=True if subset == "training" else False,
                                                   subset=subset)
 
+    def __Balancer(self):
+        g = self.df.groupby("finding")
+        self.df = shuffle(g.apply(lambda x: x.sample(g.size().min())).reset_index(drop=True))
+
     def Create(self):
         model = Sequential()
         model.add(Conv2D(32, (3, 3), activation="relu", input_shape=self.imageSize + (3,)))
+        model.add(Conv2D(32, (3, 3), activation="relu"))
         model.add(BatchNormalization())
         model.add(MaxPooling2D())
         model.add(Conv2D(64, (3, 3), activation="relu"))
