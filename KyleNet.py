@@ -9,9 +9,18 @@ from tensorflow.keras.layers import Conv2D, Dense, Flatten, MaxPooling2D, BatchN
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras import regularizers
+
 
 class KyleNet():
-    def __init__(self, metadata_location, experiment_title, balance_dataset):
+    def __init__(self,
+                 metadata_location,
+                 experiment_title,
+                 epochs=20,
+                 batch_size=128,
+                 learning_rate=0.0001,
+                 balance_dataset=False,
+                 do_augmentation=False):
         self.df = pd.read_csv(metadata_location)
 
         if balance_dataset:
@@ -21,36 +30,45 @@ class KyleNet():
         self.labels = ["COVID-19", "NON-COVID"]
 
         # Model properties
-        self.batchSize = 128
-        self.epochs = 20
+        self.batchSize = batch_size
+        self.epochs = epochs
+        self.learning_rate = learning_rate
         self.imageSize = (224, 224)
 
         # Image generator and iterators
-        self.generator = self.__ImageGenerator()
-        self.training = self.__FlowFromDF("training")
-        self.testing = self.__FlowFromDF("validation")
+        if do_augmentation:
+            self.training = self.__FlowFromDF(self.__AugmentationGenerator(), "training")
+        else:
+            self.training = self.__FlowFromDF(self.__ImageGenerator(), "training")
+
+        self.testing = self.__FlowFromDF(self.__ImageGenerator(), "validation")
 
         # Number of samples to take in one epoch
         self.trainingSteps = (self.training.samples // self.training.batch_size)
         self.testingSteps = (self.testing.samples // self.testing.batch_size)
-        
+
         self.model = self.Create()
 
     def Summary(self):
         return self.model.summary()
 
-    def __ImageGenerator(self):
-        return image.ImageDataGenerator(rescale=1./255, validation_split=0.2)
+    def __AugmentationGenerator(self):
+        return image.ImageDataGenerator(rescale=1. / 255,
+                                        horizontal_flip=True,
+                                        validation_split=0.25)
 
-    def __FlowFromDF(self, subset):
-        return self.generator.flow_from_dataframe(self.df,
-                                                  x_col="filename",
-                                                  y_col="finding",
-                                                  target_size=self.imageSize,
-                                                  batch_size=self.batchSize,
-                                                  class_mode="binary",
-                                                  shuffle=True if subset == "training" else False,
-                                                  subset=subset)
+    def __ImageGenerator(self):
+        return image.ImageDataGenerator(rescale=1. / 255, validation_split=0.25)
+
+    def __FlowFromDF(self, generator, subset):
+        return generator.flow_from_dataframe(self.df,
+                                             x_col="filename",
+                                             y_col="finding",
+                                             target_size=self.imageSize,
+                                             batch_size=self.batchSize,
+                                             class_mode="binary",
+                                             shuffle=True if subset == "training" else False,
+                                             subset=subset)
 
     def __Balancer(self):
         # Undersample the majority class
@@ -67,30 +85,41 @@ class KyleNet():
         model.add(BatchNormalization())
         model.add(MaxPooling2D())
         model.add(Conv2D(128, (3, 3), activation="relu"))
+        model.add(Conv2D(128, (3, 3), activation="relu"))
         model.add(BatchNormalization())
         model.add(MaxPooling2D())
         model.add(Conv2D(256, (3, 3), activation="relu"))
         model.add(BatchNormalization())
         model.add(MaxPooling2D())
-        model.add(Conv2D(512, (3, 3), activation="relu"))
-        model.add(BatchNormalization())
-        model.add(MaxPooling2D())
         model.add(Flatten())
-        model.add(Dense(64, activation="relu"))
+        """
+        model.add(Dense(32,
+                        activation="relu",
+                        kernel_initializer="ones",
+                        kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01),
+                        activity_regularizer=regularizers.l2(0.01)))
+        model.add(BatchNormalization())
+        model.add(Dense(1,
+                        activation="sigmoid",
+                        kernel_initializer="ones",
+                        kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01),
+                        activity_regularizer=regularizers.l2(0.01)))"""
+        model.add(Dense(32, activation="relu"))
         model.add(BatchNormalization())
         model.add(Dense(1, activation="sigmoid"))
-        model.compile(optimizer=Adam(learning_rate=0.0005), loss="binary_crossentropy", metrics=["accuracy"])
+        model.compile(optimizer=Adam(learning_rate=self.learning_rate), loss="binary_crossentropy", metrics=["accuracy"])
 
         return model
 
     def Train(self):
-        history = self.model.fit(self.training,
+        return self.model.fit(self.training,
                               steps_per_epoch=self.trainingSteps,
                               epochs=self.epochs,
                               batch_size=self.batchSize,
                               validation_data=self.testing,
                               validation_steps=self.testingSteps)
 
+    def PlotHistory(self, history):
         fig, (ax, ax2) = plt.subplots(ncols=2, figsize=(20, 5))
 
         ax.plot(history.history["accuracy"])
@@ -153,5 +182,5 @@ class KyleNet():
         plt.xlabel('False Positive Rate')
         plt.show()
 
-    def Save(self):
-        self.model.save(f"models/{self.experiment_title}.h5")
+    def Save(self, directory):
+        self.model.save(directory.joinpath(f"{self.experiment_title}.h5"))
