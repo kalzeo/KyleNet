@@ -9,7 +9,6 @@ from tensorflow.keras.layers import Conv2D, Dense, Flatten, MaxPooling2D, BatchN
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras import regularizers
 
 
 class KyleNet():
@@ -92,18 +91,6 @@ class KyleNet():
         model.add(BatchNormalization())
         model.add(MaxPooling2D())
         model.add(Flatten())
-        """
-        model.add(Dense(32,
-                        activation="relu",
-                        kernel_initializer="ones",
-                        kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01),
-                        activity_regularizer=regularizers.l2(0.01)))
-        model.add(BatchNormalization())
-        model.add(Dense(1,
-                        activation="sigmoid",
-                        kernel_initializer="ones",
-                        kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01),
-                        activity_regularizer=regularizers.l2(0.01)))"""
         model.add(Dense(32, activation="relu"))
         model.add(BatchNormalization())
         model.add(Dense(1, activation="sigmoid"))
