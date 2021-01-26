@@ -1,4 +1,6 @@
 import math
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -33,6 +35,8 @@ class KyleNet():
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.imageSize = (224, 224)
+
+        self.model_save_location = Path(".").resolve().parent.joinpath(f"models/{self.experiment_title}.h5")
 
         # Image generator and iterators
         if do_augmentation:
@@ -165,9 +169,9 @@ class KyleNet():
         plt.plot([0, 1], [0, 1], "r--")
         plt.xlim([0, 1])
         plt.ylim([0, 1])
-        plt.ylabel('True Positive Rate')
-        plt.xlabel('False Positive Rate')
+        plt.ylabel("True Positive Rate")
+        plt.xlabel("False Positive Rate")
         plt.show()
 
-    def Save(self, directory):
-        self.model.save(directory.joinpath(f"{self.experiment_title}.h5"))
+    def Save(self):
+        self.model.save(f"../models/{self.experiment_title}.h5")
