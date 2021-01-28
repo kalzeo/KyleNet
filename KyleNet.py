@@ -11,9 +11,10 @@ from tensorflow.keras.layers import Conv2D, Dense, Flatten, MaxPooling2D, BatchN
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 
-class KyleNet():
+class KyleNet:
     def __init__(self,
                  metadata_location,
                  experiment_title,
@@ -21,7 +22,8 @@ class KyleNet():
                  batch_size=128,
                  learning_rate=0.0001,
                  balance_dataset=False,
-                 do_augmentation=False):
+                 do_augmentation=False,
+                 use_early_stopping=False):
         self.df = pd.read_csv(metadata_location)
 
         if balance_dataset:
@@ -35,8 +37,7 @@ class KyleNet():
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.imageSize = (224, 224)
-
-        self.model_save_location = Path(".").resolve().parent.joinpath(f"models/{self.experiment_title}.h5")
+        self.early_stopping = use_early_stopping
 
         # Image generator and iterators
         if do_augmentation:
@@ -103,12 +104,19 @@ class KyleNet():
         return model
 
     def Train(self):
+        early_stop = EarlyStopping(monitor="val_loss", patience=3, verbose=1)
+        model_checkpoint = ModelCheckpoint(filepath=f"../models/{self.experiment_title}.h5",
+                                           monitor="val_loss",
+                                           save_best_only=True,
+                                           verbose=1)
+
         return self.model.fit(self.training,
                               steps_per_epoch=self.trainingSteps,
                               epochs=self.epochs,
                               batch_size=self.batchSize,
                               validation_data=self.testing,
-                              validation_steps=self.testingSteps)
+                              validation_steps=self.testingSteps,
+                              callbacks=[early_stop, model_checkpoint] if self.early_stopping else None)
 
     def PlotHistory(self, history):
         fig, (ax, ax2) = plt.subplots(ncols=2, figsize=(20, 5))
