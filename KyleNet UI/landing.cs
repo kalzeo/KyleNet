@@ -30,5 +30,13 @@ namespace KyleNet_UI
             blackPen.DashStyle = DashStyle.Dash;
             e.Graphics.DrawRectangle(blackPen, 70, 100, 550, 150);
         }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            Hide();
+            results _results = new results();
+            _results.Closed += (s, args) => Close();
+            _results.ShowDialog();
+        }
     }
 }
