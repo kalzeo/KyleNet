@@ -1,0 +1,10 @@
+C:\Users\Kyle\Source\Repos\KyleNet\KyleNet UI\bin\Debug\KyleNet UI.exe.config
+C:\Users\Kyle\Source\Repos\KyleNet\KyleNet UI\bin\Debug\KyleNet UI.exe
+C:\Users\Kyle\Source\Repos\KyleNet\KyleNet UI\bin\Debug\KyleNet UI.pdb
+C:\Users\Kyle\Source\Repos\KyleNet\KyleNet UI\obj\Debug\KyleNet UI.csprojAssemblyReference.cache
+C:\Users\Kyle\Source\Repos\KyleNet\KyleNet UI\obj\Debug\KyleNet_UI.landing.resources
+C:\Users\Kyle\Source\Repos\KyleNet\KyleNet UI\obj\Debug\KyleNet_UI.Properties.Resources.resources
+C:\Users\Kyle\Source\Repos\KyleNet\KyleNet UI\obj\Debug\KyleNet UI.csproj.GenerateResource.cache
+C:\Users\Kyle\Source\Repos\KyleNet\KyleNet UI\obj\Debug\KyleNet UI.csproj.CoreCompileInputs.cache
+C:\Users\Kyle\Source\Repos\KyleNet\KyleNet UI\obj\Debug\KyleNet UI.exe
+C:\Users\Kyle\Source\Repos\KyleNet\KyleNet UI\obj\Debug\KyleNet UI.pdb
