@@ -11,7 +11,6 @@ from tensorflow.keras.layers import Conv2D, Dense, Flatten, MaxPooling2D, BatchN
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 
 class KyleNet:
@@ -22,8 +21,7 @@ class KyleNet:
                  batch_size=128,
                  learning_rate=0.0001,
                  balance_dataset=False,
-                 do_augmentation=False,
-                 use_early_stopping=False):
+                 do_augmentation=False):
         self.df = pd.read_csv(metadata_location)
 
         if balance_dataset:
@@ -37,7 +35,6 @@ class KyleNet:
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.imageSize = (224, 224)
-        self.early_stopping = use_early_stopping
 
         # Image generator and iterators
         if do_augmentation:
@@ -52,6 +49,8 @@ class KyleNet:
         self.testingSteps = (self.testing.samples // self.testing.batch_size)
 
         self.model = self.Create()
+        self.history = None
+        self.predictions = None
 
     def Summary(self):
         return self.model.summary()
@@ -104,32 +103,25 @@ class KyleNet:
         return model
 
     def Train(self):
-        early_stop = EarlyStopping(monitor="val_loss", patience=3, verbose=1)
-        model_checkpoint = ModelCheckpoint(filepath=f"../models/{self.experiment_title}.h5",
-                                           monitor="val_loss",
-                                           save_best_only=True,
-                                           verbose=1)
-
-        return self.model.fit(self.training,
+        self.history = self.model.fit(self.training,
                               steps_per_epoch=self.trainingSteps,
                               epochs=self.epochs,
                               batch_size=self.batchSize,
                               validation_data=self.testing,
-                              validation_steps=self.testingSteps,
-                              callbacks=[early_stop, model_checkpoint] if self.early_stopping else None)
+                              validation_steps=self.testingSteps)
 
-    def PlotHistory(self, history):
+    def PlotHistory(self, acc_title="Model Accuracy", loss_title="Model Loss"):
         fig, (ax, ax2) = plt.subplots(ncols=2, figsize=(20, 5))
 
-        ax.plot(history.history["accuracy"])
-        ax.plot(history.history["val_accuracy"])
-        ax.set_title("Model Accuracy")
+        ax.plot(self.history.history["accuracy"])
+        ax.plot(self.history.history["val_accuracy"])
+        ax.set_title(acc_title)
         ax.set(xlabel="# of Epochs", ylabel="Accuracy")
         ax.legend(["train", "val"], loc="upper left")
 
-        ax2.plot(history.history["loss"])
-        ax2.plot(history.history["val_loss"])
-        ax2.set_title("Model Loss")
+        ax2.plot(self.history.history["loss"])
+        ax2.plot(self.history.history["val_loss"])
+        ax2.set_title(loss_title)
         ax2.set(xlabel="# of Epochs", ylabel="Loss")
         ax2.legend(["train", "val"], loc="upper left")
 
@@ -143,15 +135,15 @@ class KyleNet:
         # samples will be inconsistent.
         # Predictions > 0.5 are NON-COVID (1), < 0.5 are COVID (0)
         predictions = self.model.predict(self.testing, math.ceil(self.testingSteps), verbose=1)
-        return np.where(predictions > 0.5, 1, 0)
+        self.predictions = np.where(predictions > 0.5, 1, 0)
 
-    def MetricReport(self, predictions):
+    def MetricReport(self):
         # Build a report to show the main classification metrics
-        print(classification_report(self.testing.classes, predictions, target_names=self.labels))
+        print(classification_report(self.testing.classes, self.predictions, target_names=self.labels))
 
-    def ConfusionMatrix(self, predictions):
+    def ConfusionMatrix(self):
         # Plots a confusion matrix to evaluate the accuracy of the classification
-        cm = confusion_matrix(self.testing.classes, predictions)
+        cm = confusion_matrix(self.testing.classes, self.predictions)
 
         f = sns.heatmap(cm,
                         annot=True,
@@ -166,10 +158,10 @@ class KyleNet:
         f.set_xlabel("Predicted Class")
         f.xaxis.tick_top()
 
-    def ROC(self, predictions):
+    def ROC(self):
         # Plots a ROC curve to show the performance of the classification at different thresholds
-        fpr, tpr, thresholds = roc_curve(self.testing.classes, predictions)
-        auc = roc_auc_score(self.testing.classes, predictions)
+        fpr, tpr, thresholds = roc_curve(self.testing.classes, self.predictions)
+        auc = roc_auc_score(self.testing.classes, self.predictions)
 
         plt.title("Receiver Operating Characteristic")
         plt.plot(fpr, tpr, "b", label=f"Area Under Curve: {round(auc * 100, 1)}%")
