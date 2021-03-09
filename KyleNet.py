@@ -1,6 +1,4 @@
 import math
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -9,78 +7,101 @@ from sklearn.metrics import classification_report, confusion_matrix, roc_curve, 
 from sklearn.utils import shuffle
 from tensorflow.keras.layers import Conv2D, Dense, Flatten, MaxPooling2D, BatchNormalization
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.preprocessing import image
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.preprocessing import image
 
 
 class KyleNet:
+
     def __init__(self,
                  metadata_location,
                  experiment_title,
                  epochs=20,
                  batch_size=128,
                  learning_rate=0.0001,
+                 validation_split=0.25,
                  balance_dataset=False,
                  do_augmentation=False):
         self.df = pd.read_csv(metadata_location)
 
         if balance_dataset:
-            self.__Balancer()
+            self.__balancer()
 
         self.experiment_title = experiment_title
         self.labels = ["COVID-19", "NON-COVID"]
 
         # Model properties
-        self.batchSize = batch_size
+        self.batch_size = batch_size
         self.epochs = epochs
         self.learning_rate = learning_rate
-        self.imageSize = (224, 224)
+        self.validation_split = validation_split
+        self.image_size = (224, 224)
 
         # Image generator and iterators
         if do_augmentation:
-            self.training = self.__FlowFromDF(self.__AugmentationGenerator(), "training")
+            self.training = self.__flow_from_df(self.__image_generator(True), "training")
         else:
-            self.training = self.__FlowFromDF(self.__ImageGenerator(), "training")
+            self.training = self.__flow_from_df(self.__image_generator(), "training")
+        self.testing = self.__flow_from_df(self.__image_generator(), "validation")
 
-        self.testing = self.__FlowFromDF(self.__ImageGenerator(), "validation")
+        # Number of samples to take per epoch
+        self.training_steps = (self.training.samples // self.training.batch_size)
+        self.testing_steps = (self.testing.samples // self.testing.batch_size)
 
-        # Number of samples to take in one epoch
-        self.trainingSteps = (self.training.samples // self.training.batch_size)
-        self.testingSteps = (self.testing.samples // self.testing.batch_size)
-
-        self.model = self.Create()
+        # Create the model
+        self.model = self.create_model()
         self.history = None
         self.predictions = None
 
-    def Summary(self):
+    def summary(self):
+        """Prints a string summary of the network."""
         return self.model.summary()
 
-    def __AugmentationGenerator(self):
+    def __image_generator(self, using_augmentation=False):
+        """
+        Generate batches of tensor image data with real-time data augmentation.
+        The data will be looped over (in batches).
+
+        :param using_augmentation: Bool value to determine whether or not to include augmentation parameters.
+        :return: Returns a generator object that can be looped over.
+        """
         return image.ImageDataGenerator(rescale=1. / 255,
-                                        horizontal_flip=True,
-                                        validation_split=0.25)
+                                        horizontal_flip=True if using_augmentation else False,
+                                        validation_split=self.validation_split)
 
-    def __ImageGenerator(self):
-        return image.ImageDataGenerator(rescale=1. / 255, validation_split=0.25)
+    def __flow_from_df(self, generator, subset):
+        """
+        Takes the dataframe and generates batches.
+        The generated batches contain augmented/normalized data.
 
-    def __FlowFromDF(self, generator, subset):
+        :param generator: An ImageDataGenerator instance
+        :param subset: Subset of data ('training' or 'validation') if 'validation_split' is set in 'ImageDataGenerator'.
+
+        :return:
+        A 'DataFrameIterator' yielding tuples of '(x, y)' where 'x' is a numpy array containing a batch
+        of images with shape '(batch_size, *target_size, channels)' and 'y' is a numpy array of corresponding labels.
+        """
         return generator.flow_from_dataframe(self.df,
                                              x_col="filename",
                                              y_col="finding",
-                                             target_size=self.imageSize,
-                                             batch_size=self.batchSize,
+                                             target_size=self.image_size,
+                                             batch_size=self.batch_size,
                                              class_mode="binary",
                                              shuffle=True if subset == "training" else False,
                                              subset=subset)
 
-    def __Balancer(self):
-        # Undersample the majority class
+    def __balancer(self):
+        """Balance the dataset but under-sampling the majority class and then shuffles it."""
         g = self.df.groupby("finding")
         self.df = shuffle(g.apply(lambda x: x.sample(g.size().min())).reset_index(drop=True))
 
-    def Create(self):
+    def create_model(self):
+        """
+        Build the CNN model.
+        :return: Returns a 'sequential' model.
+        """
         model = Sequential()
-        model.add(Conv2D(32, (3, 3), activation="relu", input_shape=self.imageSize + (3,)))
+        model.add(Conv2D(32, (3, 3), activation="relu", input_shape=self.image_size + (3,)))
         model.add(Conv2D(32, (3, 3), activation="relu"))
         model.add(BatchNormalization())
         model.add(MaxPooling2D())
@@ -98,19 +119,33 @@ class KyleNet:
         model.add(Dense(32, activation="relu"))
         model.add(BatchNormalization())
         model.add(Dense(1, activation="sigmoid"))
-        model.compile(optimizer=Adam(learning_rate=self.learning_rate), loss="binary_crossentropy", metrics=["accuracy"])
+
+        model.compile(optimizer=Adam(learning_rate=self.learning_rate),
+                      loss="binary_crossentropy",
+                      metrics=["accuracy"])
 
         return model
 
-    def Train(self):
-        self.history = self.model.fit(self.training,
-                              steps_per_epoch=self.trainingSteps,
-                              epochs=self.epochs,
-                              batch_size=self.batchSize,
-                              validation_data=self.testing,
-                              validation_steps=self.testingSteps)
+    def train(self):
+        """
+        Trains the model for a fixed number of epochs (iterations on a dataset).
 
-    def PlotHistory(self, acc_title="Model Accuracy", loss_title="Model Loss"):
+        :return:
+        A 'History' object. Its 'History.history' attribute is a record of training loss values and metrics values
+        at successive epochs, as well as validation loss values and validation metrics values (if applicable).
+        """
+        self.history = self.model.fit(self.training,
+                                      steps_per_epoch=self.training_steps,
+                                      epochs=self.epochs,
+                                      batch_size=self.batch_size,
+                                      validation_data=self.testing,
+                                      validation_steps=self.testing_steps)
+
+    def plot_history(self, acc_title="Model Accuracy", loss_title="Model Loss"):
+        """
+        Uses the models 'History' object to plot the accuracy/loss graphs from the 'History.history' attribute to
+        analyse how well the model performed during training.
+        """
         fig, (ax, ax2) = plt.subplots(ncols=2, figsize=(20, 5))
 
         ax.plot(self.history.history["accuracy"])
@@ -127,40 +162,54 @@ class KyleNet:
 
         plt.grid(False)
 
-    def Evaluate(self):
+    def evaluate(self):
+        """
+        Returns the loss value & metrics values for the model in the validation set.
+
+        :return:
+        Scalar test loss (if the model has a single output and no metrics) or list of scalars (if the model has
+        multiple outputs and/or metrics).
+        """
         self.model.evaluate(self.testing)
 
-    def Predict(self):
-        # The number of testing steps must be ceiled to use a confusion matrix otherwise the number of
-        # samples will be inconsistent.
-        # Predictions > 0.5 are NON-COVID (1), < 0.5 are COVID (0)
-        predictions = self.model.predict(self.testing, math.ceil(self.testingSteps), verbose=1)
+    def predict(self):
+        """
+        Generates output predictions for the validation set.
+
+        The number of testing steps MUST be ceiled for it to work with a confusion matrix otherwise the number of
+        samples will be inconsistent.
+
+        Any predictions > 0.5 are considered NON-COVID (1), < 0.5 are considered COVID-19 (0).
+
+        :return: Numpy array of predictions.
+        """
+        predictions = self.model.predict(self.testing, math.ceil(self.testing_steps), verbose=1)
         self.predictions = np.where(predictions > 0.5, 1, 0)
 
-    def MetricReport(self):
-        # Build a report to show the main classification metrics
+    def metric_report(self):
+        """Built a text report that shows the precision, recall, and F1-score of the model."""
         print(classification_report(self.testing.classes, self.predictions, target_names=self.labels))
 
-    def ConfusionMatrix(self):
-        # Plots a confusion matrix to evaluate the accuracy of the classification
+    def confusion_matrix(self):
+        """Plot a confusion matrix to evaluate the accuracy of the predictions."""
         cm = confusion_matrix(self.testing.classes, self.predictions)
 
-        f = sns.heatmap(cm,
-                        annot=True,
-                        fmt="g",
-                        linewidths=2,
-                        xticklabels=self.labels,
-                        yticklabels=self.labels,
-                        cmap="Reds")
+        fig = sns.heatmap(cm,
+                          annot=True,
+                          fmt="g",
+                          linewidths=2,
+                          xticklabels=self.labels,
+                          yticklabels=self.labels,
+                          cmap="Reds")
 
-        f.set_title("Confusion Matrix\n")
-        f.set_ylabel("True Class")
-        f.set_xlabel("Predicted Class")
-        f.xaxis.tick_top()
+        fig.set_title("Confusion Matrix\n")
+        fig.set_ylabel("True Class")
+        fig.set_xlabel("Predicted Class")
+        fig.xaxis.tick_top()
 
-    def ROC(self):
-        # Plots a ROC curve to show the performance of the classification at different thresholds
-        fpr, tpr, thresholds = roc_curve(self.testing.classes, self.predictions)
+    def roc(self):
+        """Plot a ROC curve to show the performance of the classifications at all thresholds."""
+        fpr, tpr, _ = roc_curve(self.testing.classes, self.predictions)
         auc = roc_auc_score(self.testing.classes, self.predictions)
 
         plt.title("Receiver Operating Characteristic")
@@ -173,5 +222,13 @@ class KyleNet:
         plt.xlabel("False Positive Rate")
         plt.show()
 
-    def Save(self):
+    def save(self):
+        """
+        Save the current model in HDF5 format.
+
+        The saved model includes:
+        - The model architecture, allowing to re-instantiate the model.
+        - The model weights.
+        - The state of the optimizer, allowing to resume training exactly where you left off.
+        """
         self.model.save(f"../models/{self.experiment_title}.h5")
