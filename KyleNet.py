@@ -190,7 +190,7 @@ class KyleNet:
         """Built a text report that shows the precision, recall, and F1-score of the model."""
         print(classification_report(self.testing.classes, self.predictions, target_names=self.labels))
 
-    def confusion_matrix(self):
+    def confusion_mat(self):
         """Plot a confusion matrix to evaluate the accuracy of the predictions."""
         cm = confusion_matrix(self.testing.classes, self.predictions)
 
