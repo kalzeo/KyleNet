@@ -117,7 +117,3 @@ def main():
 if __name__ == '__main__':
     time_exec = timeit(main, number=1)
     st.write(f"___\n### Execution Time\n{time_exec}")
-    # exe_time = timeit(main, number=1)
-    # st.write("___")
-    # st.write("### Execution Time")
-    # st.write(exe_time)
