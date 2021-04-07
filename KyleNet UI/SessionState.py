@@ -33,11 +33,7 @@ class SessionState(object):
         >>> session_state.favorite_color
         'black'
         """
-        self.buffer = None
-        self.dropdown = None
-        self.files = {}
-        self.state_key = None
-        self.buffer_read = False
+
         for key, val in kwargs.items():
             setattr(self, key, val)
 
