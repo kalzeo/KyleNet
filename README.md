@@ -43,7 +43,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-KyleNet is a CNN model that was developed to classify COVID-19 in CXRs and CT scans as part of a BSc degree honours project.
+KyleNet is a CNN model that was developed to classify COVID-19 in CXRs and CT scans as part of a BSc (Hons) project.
 <br>
 <br>
 It is only intended to be used as an experimental framework, not a clinical diagnostic tool.
