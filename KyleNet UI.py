@@ -13,7 +13,7 @@ from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from SessionState import get
 from scorecam import ScoreCAM
 
-model = load_model("../models/Experiment 4.h5")
+model = load_model("models/Experiment 4.h5")
 
 st.set_page_config(page_title="KyleNet UI")
 st.info("For Experimental Purposes Only")
