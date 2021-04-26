@@ -78,10 +78,12 @@ To get a local copy up and running follow these simple steps.
    
 <!-- USAGE EXAMPLES -->
 ## Usage
-After you've downloaded the prerequisites and completed the necessary installation steps, go to the [KyleNet UI](https://github.com/kalzeo/KyleNet/tree/main/KyleNet%20UI) folder and run the following command to start the application.<br>
+After you've downloaded the prerequisites and completed the necessary installation steps, go to the [root](https://github.com/kalzeo/KyleNet/) folder and run the following command to start the application.<br>
 ```sh
-   streamlit run app.py
+   streamlit run streamlit_app.py
    ```
+  <br>
+  Additionally, the UI can be viewed online [here](https://share.streamlit.io/kalzeo/kylenet/main)
   <br>
   <img align="left" src="https://user-images.githubusercontent.com/5749422/113944563-a1f9fd80-97fc-11eb-86ee-70ca578f914d.png" alt="Upload images">
   <p>Images can be uploaded to the framework using the file uploader in the sidebar to receive results within a couple of seconds.</p>
