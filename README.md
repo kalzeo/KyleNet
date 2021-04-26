@@ -82,8 +82,8 @@ After you've downloaded the prerequisites and completed the necessary installati
 ```sh
    streamlit run streamlit_app.py
    ```
+Additionally, the UI can be viewed online here: https://share.streamlit.io/kalzeo/kylenet/main/
    <br>
-Additionally, the UI can be viewed online [here](https://share.streamlit.io/kalzeo/kylenet/main/)
    <br>
   <img align="left" src="https://user-images.githubusercontent.com/5749422/113944563-a1f9fd80-97fc-11eb-86ee-70ca578f914d.png" alt="Upload images">
   <p>Images can be uploaded to the framework using the file uploader in the sidebar to receive results within a couple of seconds.</p>
