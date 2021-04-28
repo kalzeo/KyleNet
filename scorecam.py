@@ -12,7 +12,7 @@ def sigmoid(x):
 
 class ScoreCAM:
     def __init__(self, image):
-        self.model = load_model("models/Experiment 4.h5")
+        self.model = load_model("model.h5")
         self.final_conv = "conv2d_5"
 
         self.image = image

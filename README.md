@@ -48,6 +48,8 @@ KyleNet is a CNN model that was developed to classify COVID-19 in CXRs and CT sc
 <br>
 It is only intended to be used as an experimental framework, not a clinical diagnostic tool.
 
+ℹ️ The experimental dataset + models have been moved to Kaggle and can be found [here.](https://www.kaggle.com/kylemcpherson/kylenet-experimental-dataset)
+
 ### Built With
 
 * Python 3.8
