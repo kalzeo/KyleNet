@@ -130,4 +130,3 @@ if __name__ == '__main__':
                 ram_usage[value] /= np.power(1024, 3)
 
         st.write(ram_usage)
-
