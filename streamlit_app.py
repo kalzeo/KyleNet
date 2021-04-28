@@ -6,6 +6,8 @@ import cv2
 import numpy as np
 
 import pandas as pd
+import psutil as ps
+
 import streamlit as st
 from PIL import Image
 from tensorflow.keras.models import load_model
@@ -28,6 +30,8 @@ st.sidebar.subheader("Images")
 buffer = st.sidebar.file_uploader(label="Upload your image file",
                                   type=["png", "jpeg", "jpg"],
                                   accept_multiple_files=True)
+
+expander = None
 
 
 def get_prediction(img):
@@ -97,24 +101,33 @@ def main():
 
     # Only execute if the dropdown has options
     if state.dropdown is not None:
-        selection = state.files.get(state.dropdown)
+        results = state.files.get(state.dropdown)
 
         # Setup the columns for the images
         col1, col2 = st.beta_columns(2)
         col1.header("Original")
-        col1.image(selection[1])
+        col1.image(results[1])
 
         col2.header("Score-CAM")
-        col2.image(selection[2])
+        col2.image(results[2])
 
-        # Misc Info
-        st.subheader(f"Prediction: {selection[3]}")
-        st.write("___")
-        st.subheader("File Information")
-        dataframe = pd.json_normalize(selection[0])
-        st.table(dataframe)
+        st.subheader(f"Prediction: {results[3]}\n___")
 
 
 if __name__ == '__main__':
     time_exec = timeit(main, number=1)
-    st.write(f"___\n### Execution Time\n{time_exec}")
+    expander = st.beta_expander("Click to View Miscellaneous Info", expanded=False)
+
+    with expander:
+        # Execution time
+        st.write(f"### Execution Time\n{round(time_exec, 2)}s\n")
+
+        # RAM usage
+        st.write("___\n### RAM Usage (GB)\n")
+        ram_usage = ps.virtual_memory()._asdict()
+        for value in ram_usage:
+            if value != "percent":
+                ram_usage[value] /= np.power(1024, 3)
+
+        st.write(ram_usage)
+
