@@ -123,12 +123,11 @@ if __name__ == '__main__':
         st.write(f"### Execution Time\n{round(time_exec, 2)}s\n")
 
         # RAM usage
-        ram_usage = ps.virtual_memory()._asdict()
+        st.write("___\n### RAM Usage (GB)\n")
         
-        st.write("___\n### RAM Usage\n")
-
-        #for value in ram_usage:
-            #if value != "percent":
-                #ram_usage[value] /= np.power(1024, 3)
+        ram_usage = ps.virtual_memory()._asdict()
+        for value in ram_usage:
+            if value != "percent":
+                ram_usage[value] /= np.power(1024, 3)
 
         st.write(ram_usage)
